@@ -1,0 +1,61 @@
+#!/bin/bash
+#SBATCH --time=1:30:00
+#SBATCH --mem=20G
+#SBATCH --cpus-per-task=4
+#SBATCH --account=def-nagissa
+#SBATCH --job-name=ITS_Illumina_read_cleaning
+#SBATCH --array=1-10
+
+#Some flags to stop the whole pipeline if an error occurs
+set -euo pipefail
+set -x
+threads=$SLURM_CPUS_PER_TASK
+
+#Set sample_list to loop through
+sample=$(sed -n "${SLURM_ARRAY_TASK_ID}p" ITS_samplenames.txt)
+
+#Making all the directories + define location of adaptor file for trimmomatic
+outdir=/project/6105702/CMO_2024_Metagenome/goordial/second_round_of_sequencing/goordial_air_snowfall_second_sequencing_round/ITS
+mkdir -p ${outdir}/trimmomatic_qc
+mkdir -p ${outdir}/trimmomatic_qc/qc_stats
+
+adaptor=/project/6105702/2025_cmo_metagenome/general_scripts/NexteraPE-PE.fa
+
+#Load modules in Nibi cluster (Compute Canada)
+module load StdEnv/2020
+module load trimmomatic
+module load bbmap
+module load fastqc
+
+echo "${sample}"
+
+# Create output folder for logs
+logdir=${outdir}/trimmomatic_qc/illumina_clean_logs
+mkdir -p ${logdir}
+
+# Initialize read count log
+readcount_dir=${outdir}/trimmomatic_qc/readcounts
+mkdir -p ${readcount_dir}
+
+readcount_log=${readcount_dir}/readcounts_${sample}.txt
+echo "Step,Forward_reads,Reverse_reads" > $readcount_log
+
+#Set location of input and output fasta/fastq files (forward and reverse)
+forward_input=${outdir}/${sample}_L001_R1_001.fastq.gz
+reverse_input=${outdir}/${sample}_L001_R2_001.fastq.gz
+current_R1=${outdir}/trimmomatic_qc/${sample}_clean_R1.fastq.gz
+current_R2=${outdir}/trimmomatic_qc/${sample}_clean_R2.fastq.gz
+
+# Log starting read count per file
+echo "raw,$(zcat $current_R1 | wc -l | awk '{print $1/4}'),$(zcat $current_R2 | wc -l | awk '{print $1/4}')" >> ${readcount_log}
+
+mkdir -p ${outdir}/trimmomatic_qc/unpaired
+
+java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.39.jar PE -threads $SLURM_CPUS_PER_TASK \
+  ${forward_input} ${reverse_input} \
+  ${current_R1} ${outdir}/trimmomatic_qc/unpaired/${sample}_R1_unpaired \
+  ${current_R2} ${outdir}/trimmomatic_qc/unpaired/${sample}_R2_unpaired \
+  ILLUMINACLIP:${adaptor}:2:30:10:8:True SLIDINGWINDOW:4:20 LEADING:3 TRAILING:3 MINLEN:36
+
+# Log read counts after trimmomatic
+echo "trimmomatic,$(zcat $current_R1 | wc -l | awk '{print $1/4}'),$(zcat $current_R2 | wc -l | awk '{print $1/4}')" >> ${readcount_log}
