@@ -56,7 +56,7 @@ current_R2=${outdir}/clean_fastq/${sample}_clean_R2.fastq.gz
 
 
 # Log starting read count per file
-echo "raw,$(zcat $current_R1 | wc -l | awk '{print $1/4}'),$(zcat $current_R2 | wc -l | awk '{print $1/4}')" >> $readcount_log
+echo "raw,$(zcat $r1 | wc -l | awk '{print $1/4}'),$(zcat $r2 | wc -l | awk '{print $1/4}')" >> $readcount_log
 
 #Trimmomatic
 java -jar $EBROOTTRIMMOMATIC/trimmomatic-0.39.jar PE -threads $SLURM_CPUS_PER_TASK \
