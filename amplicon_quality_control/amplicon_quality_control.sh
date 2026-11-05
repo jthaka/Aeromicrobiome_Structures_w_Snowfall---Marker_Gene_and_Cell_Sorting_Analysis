@@ -9,7 +9,7 @@
 #SBATCH --job-name=Illumina_read_cleaning
 #SBATCH --array=1-23%10
 
-#NOTE: Threads were kept consistent at 8 to match quality control with metatranscriptome samples. Threading can alter the initial organization and subsequent read recovery
+#NOTE: Threads were kept consistent at 4 to match quality control with metatranscriptome samples. Threading can alter the initial organization and subsequent read recovery
 #during QC. To improve reproducibility of our results, the thread count was kept consistent for the entire QC pipeline across both metagenome and metatranscriptome samples.
 
 #Some flags to stop the whole pipeline if an error occurs
